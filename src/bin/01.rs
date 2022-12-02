@@ -1,5 +1,7 @@
+use advent_of_code::helpers::get_all_lines;
+
 pub fn part_one(input: &str) -> Option<u32> {
-    let lines = get_lines(input);
+    let lines = get_all_lines(input);
     let elves = get_elves_snacks(lines);
     let total_calories = get_elves_total_calories(elves);
 
@@ -7,7 +9,7 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let lines = get_lines(input);
+    let lines = get_all_lines(input);
     let elves = get_elves_snacks(lines);
     let total_calories = get_elves_total_calories(elves);
 
@@ -18,10 +20,6 @@ pub fn part_two(input: &str) -> Option<u32> {
     total_calories.truncate(3);
     let top_3: u32 = total_calories.iter().sum();
     Some(top_3)
-}
-
-fn get_lines(input: &str) -> Vec<&str> {
-    input.split("\n").collect()
 }
 
 fn get_elves_snacks(lines: Vec<&str>) -> Vec<Vec<&str>> {
