@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use advent_of_code::helpers::get_lines_without_empty;
 
+const HD_SIZE: u32 = 70000000;
+const NEEDED_FOR_UPGRADE: u32 = 30000000;
+
 #[derive(Debug, PartialEq, Eq)]
 struct Command {
     raw: String,
@@ -27,7 +30,13 @@ fn output_to_command(output: &&str) -> Command {
     Command { raw, kind }
 }
 
-fn group_input_and_output(commands: Vec<Command>) -> Vec<Vec<Command>> {
+// fn group_input_and_output(commands: Vec<Command>) -> Vec<Vec<Command>> {
+fn group_input_and_output(input: &str) -> Vec<Vec<Command>> {
+    let terminal_output = get_lines_without_empty(input);
+    let commands = terminal_output
+        .iter()
+        .map(output_to_command)
+        .collect::<Vec<Command>>();
     let mut groups = Vec::new();
     let mut group = Vec::new();
     for command in commands {
@@ -47,6 +56,7 @@ fn process_input(
     input_group: &Vec<Command>,
     path: &mut Vec<String>,
     size_map: &mut HashMap<String, u32>,
+    kind: &str,
 ) {
     for command in input_group {
         match command.kind {
@@ -66,9 +76,20 @@ fn process_input(
                                 path.push(dir.to_string());
                             }
                             _ => {
-                                // can't declare full as `String` and assign multiple places
-                                path.push(path.join("/") + dir);
-                                size_map.entry(path.join("/")).or_insert(0);
+                                // Mission accomplished for using `match`
+                                // but ... this is a gross hack
+                                match kind {
+                                    "part_one" => {
+                                        // can't declare `fully_qualified_path` as `String` and assign multiple places
+                                        path.push(path.join("/") + dir);
+                                        size_map.entry(path.join("/")).or_insert(0);
+                                    }
+                                    "part_two" => {
+                                        path.push(dir.to_string());
+                                        size_map.entry(dir.to_string()).or_insert(0);
+                                    }
+                                    _ => panic!("Unknown kind: {}", kind),
+                                }
                             }
                         }
                     }
@@ -91,18 +112,13 @@ fn process_input(
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let terminal_output = get_lines_without_empty(input);
-    let commands = terminal_output
-        .iter()
-        .map(output_to_command)
-        .collect::<Vec<Command>>();
-    let groups = group_input_and_output(commands);
+    let groups = group_input_and_output(input);
     // mutable state through the commands
     // use String as key, not &str for lifetime memory
     let mut path: Vec<String> = Vec::new();
     let mut size_map: HashMap<String, u32> = HashMap::new();
     for group in groups {
-        process_input(&group, &mut path, &mut size_map);
+        process_input(&group, &mut path, &mut size_map, "part_one");
     }
     let sum: u32 = size_map
         .values()
@@ -111,8 +127,24 @@ pub fn part_one(input: &str) -> Option<u32> {
     Some(sum)
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<u32> {
+    let groups = group_input_and_output(input);
+    let mut path: Vec<String> = Vec::new();
+    let mut size_map: HashMap<String, u32> = HashMap::new();
+    for group in groups {
+        process_input(&group, &mut path, &mut size_map, "part_two");
+    }
+    let mut values = size_map.values().collect::<Vec<&u32>>();
+    let size = size_map.get("/").unwrap();
+    let remaining_on_hd = HD_SIZE - size;
+    let remaining_disc_to_clear = NEEDED_FOR_UPGRADE - remaining_on_hd;
+    values.sort();
+
+    let lowest = values
+        .iter()
+        .find(|s| **s > &remaining_disc_to_clear)
+        .unwrap();
+    Some(**lowest)
 }
 
 fn main() {
@@ -133,32 +165,12 @@ mod tests {
 
     #[test]
     fn test_ls_adds_to_path() {
-        let input = Vec::from([
-            Command {
-                raw: "$ cd /".to_string(),
-                kind: CommandKind::Input,
-            },
-            Command {
-                raw: "$ ls".to_string(),
-                kind: CommandKind::Input,
-            },
-            Command {
-                raw: "dir a".to_string(),
-                kind: CommandKind::Dir,
-            },
-            Command {
-                raw: "14848514 b.txt".to_string(),
-                kind: CommandKind::File,
-            },
-            Command {
-                raw: "8504156 c.dat".to_string(),
-                kind: CommandKind::File,
-            },
-            Command {
-                raw: "dir d".to_string(),
-                kind: CommandKind::Dir,
-            },
-        ]);
+        let input = "$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d";
 
         let expected: Vec<Vec<Command>> = Vec::from([
             Vec::from([Command {
@@ -191,11 +203,10 @@ mod tests {
 
         assert_eq!(group_input_and_output(input), (expected));
     }
-
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 7);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(24933642));
     }
 }
 
