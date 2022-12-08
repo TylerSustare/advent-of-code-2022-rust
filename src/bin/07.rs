@@ -30,7 +30,6 @@ fn output_to_command(output: &&str) -> Command {
     Command { raw, kind }
 }
 
-// fn group_input_and_output(commands: Vec<Command>) -> Vec<Vec<Command>> {
 fn group_input_and_output(input: &str) -> Vec<Vec<Command>> {
     let terminal_output = get_lines_without_empty(input);
     let commands = terminal_output
@@ -56,7 +55,6 @@ fn process_input(
     input_group: &Vec<Command>,
     path: &mut Vec<String>,
     size_map: &mut HashMap<String, u32>,
-    kind: &str,
 ) {
     for command in input_group {
         match command.kind {
@@ -76,20 +74,11 @@ fn process_input(
                                 path.push(dir.to_string());
                             }
                             _ => {
-                                // Mission accomplished for using `match`
-                                // but ... this is a gross hack
-                                match kind {
-                                    "part_one" => {
-                                        // can't declare `fully_qualified_path` as `String` and assign multiple places
-                                        path.push(path.join("/") + dir);
-                                        size_map.entry(path.join("/")).or_insert(0);
-                                    }
-                                    "part_two" => {
-                                        path.push(dir.to_string());
-                                        size_map.entry(dir.to_string()).or_insert(0);
-                                    }
-                                    _ => panic!("Unknown kind: {}", kind),
-                                }
+                                // let fully_qualified_dir = path.join("/");
+                                // declaring a variable here and using in both places causes
+                                // <use of moved value: `fully_qualified_dir`> error
+                                path.push(path.join("/") + dir);
+                                size_map.entry(path.join("/")).or_insert(0);
                             }
                         }
                     }
@@ -118,7 +107,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     let mut path: Vec<String> = Vec::new();
     let mut size_map: HashMap<String, u32> = HashMap::new();
     for group in groups {
-        process_input(&group, &mut path, &mut size_map, "part_one");
+        process_input(&group, &mut path, &mut size_map);
     }
     let sum: u32 = size_map
         .values()
@@ -132,7 +121,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     let mut path: Vec<String> = Vec::new();
     let mut size_map: HashMap<String, u32> = HashMap::new();
     for group in groups {
-        process_input(&group, &mut path, &mut size_map, "part_two");
+        process_input(&group, &mut path, &mut size_map);
     }
     let mut values = size_map.values().collect::<Vec<&u32>>();
     let size = size_map.get("/").unwrap();
